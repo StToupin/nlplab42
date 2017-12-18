@@ -46,12 +46,26 @@ class SifDataset:
 def preprocess_dataset(dataset, dictionary):
     exs = []
     labels = []
+    freq = {}
+    total = 0
     for sentence, label in dataset:
         tokenized = preprocess_sentence(sentence, dictionary)
+        for token in tokenized:
+            if token in freq.keys():
+                freq[token] += 1
+            else:
+                freq[token] = 1
+            total += 1
         if tokenized.numel() > 0:
             exs.append(tokenized)
             labels.append(torch.LongTensor([label]))
-    return exs, labels
+    for token, n in freq.items():
+        freq[token] = float(n) / float(total)
+    all_tokens = torch.LongTensor([int(token) for token in freq.keys()])
+    freq_tensor = torch.FloatTensor(all_tokens.max() + 1)
+    for token in all_tokens:
+        freq_tensor[token] = freq[token]
+    return exs, labels, freq_tensor
 
 def preprocess_sentence(sentence, dictionary):
     return torch.LongTensor([dictionary[w] for w in sentence.split() if w in dictionary])
